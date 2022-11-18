@@ -1,4 +1,5 @@
 import 'package:datepicker_dropdown/datepicker_dropdown.dart';
+import 'package:flutter_conditional_rendering/flutter_conditional_rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -32,7 +33,33 @@ class CreditCardForm extends StatefulWidget {
 
 class CreditCardFormState extends State<CreditCardForm> {
   final _formkey = GlobalKey<FormState>();
-  String dropdownValue = months.first;
+  bool showBackFace = false;
+  String selectedMonth = months.first;
+  String selectedYear = "2022";
+  String cardNumber = "";
+  String name = "";
+  String currentCard = "";
+  String cvv = "";
+  int digits = 19;
+  late AssetImage image;
+
+  @override
+  void initState() {
+    super.initState();
+    image = const AssetImage("assets/visa.png");
+  }
+
+  void updateImage() {
+    if (currentCard != "") {
+      setState(() {
+        image = AssetImage("assets/$currentCard.png");
+      });
+    } else {
+      setState(() {
+        image = const AssetImage("assets/transparent.png");
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,20 +67,113 @@ class CreditCardFormState extends State<CreditCardForm> {
         key: _formkey,
         child: Column(
           children: <Widget>[
-            Container(
-              decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/14.jpeg"),
-                    fit: BoxFit.cover,
-                  ),
-                  borderRadius: BorderRadius.all(Radius.circular(10))),
-              margin: const EdgeInsets.symmetric(vertical: 30),
-              width: 310,
-              height: 200,
-              child: Column(
-                children: const <Widget>[
-                  Text("tja"),
-                ],
+            Conditional.single(
+              context: context,
+              conditionBuilder: (context) => showBackFace == false,
+              widgetBuilder: (context) => Container(
+                decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/14.jpeg"),
+                      fit: BoxFit.cover,
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                margin: const EdgeInsets.symmetric(vertical: 30),
+                width: 310,
+                height: 200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    SizedBox(
+                      height: 110,
+                      child: Container(
+                        width: 70,
+                        height: 70,
+                        margin: const EdgeInsets.only(left: 225, bottom: 45),
+                        child: Image(
+                          image: image,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 10, left: 20),
+                      child: Text(
+                        cardNumber,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        const SizedBox(width: 20),
+                        SizedBox(
+                          width: 200,
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14),
+                          ),
+                        ),
+                        Text(
+                          "$selectedMonth/$selectedYear",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+              fallbackBuilder: (context) => Container(
+                decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage("assets/14_reverse.jpg"),
+                      fit: BoxFit.cover,
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(10))),
+                margin: const EdgeInsets.symmetric(vertical: 30),
+                width: 310,
+                height: 200,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Container(
+                      color: Colors.black,
+                      width: double.infinity,
+                      height: 40,
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    Container(
+                      color: Colors.grey,
+                      width: 220,
+                      height: 40,
+                      margin: const EdgeInsets.only(left: 20),
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Text(
+                          cvv,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Row(
@@ -70,8 +190,8 @@ class CreditCardFormState extends State<CreditCardForm> {
               ],
             ),
             Container(
-              margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-              height: 100,
+              margin: const EdgeInsets.only(left: 10, right: 10),
+              height: 80,
               child: TextFormField(
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
@@ -83,13 +203,58 @@ class CreditCardFormState extends State<CreditCardForm> {
                   hintText: 'XXXX XXXX XXXX XXXX',
                 ),
                 validator: (value) {
-                  if (value?.length == 19) {
+                  if (value?.length == digits && currentCard != "") {
                     return null;
                   }
                   return 'Please enter a valid credit card number.';
                 },
-                maxLength: 19,
-                onChanged: (value) {},
+                maxLength: digits,
+                onChanged: (value) {
+                  setState(() {
+                    cardNumber = value;
+                  });
+                  String? firstDigit =
+                      value.isNotEmpty ? value.substring(0, 1) : null;
+                  String? secondDigit =
+                      value.length > 1 ? value.substring(1, 2) : null;
+                  if (firstDigit == "4") {
+                    setState(() {
+                      currentCard = "visa";
+                      digits = 19;
+                    });
+                  } else if (firstDigit == "5") {
+                    setState(() {
+                      currentCard = "mastercard";
+                      digits = 19;
+                    });
+                  } else if (firstDigit == "6") {
+                    setState(() {
+                      currentCard = "discover";
+                      digits = 19;
+                    });
+                  } else if (firstDigit == "3") {
+                    if (secondDigit == "4" || secondDigit == "7") {
+                      setState(() {
+                        currentCard = "amex";
+                        digits = 18;
+                      });
+                    } else if (secondDigit == "0" ||
+                        secondDigit == "6" ||
+                        secondDigit == "8") {
+                      setState(() {
+                        currentCard = "dinersclub";
+                        digits = 17;
+                      });
+                    } else {
+                      currentCard = "";
+                      digits = 19;
+                    }
+                  } else {
+                    currentCard = "";
+                    digits = 19;
+                  }
+                  updateImage();
+                },
               ),
             ),
             Row(
@@ -106,8 +271,8 @@ class CreditCardFormState extends State<CreditCardForm> {
               ],
             ),
             Container(
-              margin: const EdgeInsets.only(bottom: 20, left: 10, right: 10),
-              height: 100,
+              margin: const EdgeInsets.only(left: 10, right: 10),
+              height: 80,
               child: TextFormField(
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
@@ -124,7 +289,11 @@ class CreditCardFormState extends State<CreditCardForm> {
                   return 'Please enter a valid name.';
                 },
                 maxLength: 100,
-                onChanged: (value) {},
+                onChanged: (value) {
+                  setState(() {
+                    name = value;
+                  });
+                },
               ),
             ),
             Row(
@@ -170,10 +339,10 @@ class CreditCardFormState extends State<CreditCardForm> {
                       ),
                     );
                   }).toList(),
-                  value: dropdownValue,
+                  value: selectedMonth,
                   onChanged: (value) {
                     setState(() {
-                      dropdownValue = value!;
+                      selectedMonth = value!;
                     });
                   },
                 )),
@@ -198,7 +367,11 @@ class CreditCardFormState extends State<CreditCardForm> {
                     selectedYear: 2022,
                     onChangedDay: (value) {},
                     onChangedMonth: (value) {},
-                    onChangedYear: (value) {},
+                    onChangedYear: (value) {
+                      setState(() {
+                        selectedYear = value!;
+                      });
+                    },
                     showDay: false,
                     showMonth: false,
                     textStyle: const TextStyle(
@@ -210,31 +383,43 @@ class CreditCardFormState extends State<CreditCardForm> {
                 const SizedBox(width: 10),
                 Expanded(
                   flex: 1,
-                  child: TextFormField(
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(
-                        borderSide: BorderSide(
-                          color: Colors.grey,
-                          width: 1.0,
-                        ),
-                      ),
-                      contentPadding:
-                          EdgeInsets.symmetric(vertical: 22.5, horizontal: 10),
-                      counterText: "",
-                    ),
-                    validator: (value) {
-                      if (value!.length > 3) {
-                        return null;
-                      } else {
-                        return "Please enter a valid CVV.";
-                      }
+                  child: FocusScope(
+                      child: Focus(
+                    onFocusChange: (value) {
+                      setState(() {
+                        showBackFace = value;
+                      });
                     },
-                    maxLength: 4,
-                    onChanged: (value) {},
-                  ),
+                    child: TextFormField(
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Colors.grey,
+                            width: 1.0,
+                          ),
+                        ),
+                        contentPadding: EdgeInsets.symmetric(
+                            vertical: 22.5, horizontal: 10),
+                        counterText: "",
+                      ),
+                      validator: (value) {
+                        if (value!.length > 2) {
+                          return null;
+                        } else {
+                          return "Please enter a valid CVV.";
+                        }
+                      },
+                      maxLength: 4,
+                      onChanged: (value) {
+                        setState(() {
+                          cvv = value;
+                        });
+                      },
+                    ),
+                  )),
                 ),
                 const SizedBox(width: 10),
               ],
@@ -342,7 +527,7 @@ class _MyHomePageState extends State<MyHomePage> {
         // in the middle of the parent.
         child: Column(
           children: const <Widget>[
-            SizedBox(height: 50),
+            SizedBox(height: 30),
             CreditCardForm(),
           ],
         ),
